@@ -35,6 +35,18 @@ dRefFasta="/genomeRefDir/$(basename ${refFasta})"
 for vcfFile in $(find ~+ -maxdepth 1 -type f  -name "*_mutect2.vcf")
     do
     (
+        if [ ! -f "${vcfFile%%.*}_normalized.vcf"]; then
+            docker run \
+                        --workdir /workdir \
+                        --rm \
+                        --volume $(pwd):/workdir \
+                        broadinstitute/gatk \
+                        gatk LeftAlignAndTrimVariants \
+                        -R ${dRefFasta} \
+                        -V /workdir/$(basename ${vcfFile}) \
+                        -O /workdir/$(basename ${vcfFile%%.*})_normalized.vcf
+        fi
+
         if [ ! -f "${vcfFile%%.*}_funcotator.vcf" ]; then
             docker run \
                         --workdir /workdir \
@@ -47,7 +59,7 @@ for vcfFile in $(find ~+ -maxdepth 1 -type f  -name "*_mutect2.vcf")
                         --data-sources-path /funcotatorRefDir/ \
                         --ref-version hg38 \
                         -R ${dRefFasta} \
-                        -V /workdir/$(basename ${vcfFile}) \
+                        -V /workdir/$(basename ${vcfFile%%.*})_normalized.vcf \
                         -O /workdir/$(basename ${vcfFile%%.*})_funcotator.vcf.gz \
                         --output-file-format VCF
             #annotate variants. documentation says --variant, but should be --input or -I? -V works for some reason despite error message
